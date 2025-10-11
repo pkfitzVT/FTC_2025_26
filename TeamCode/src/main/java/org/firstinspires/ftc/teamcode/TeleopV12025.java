@@ -3,35 +3,34 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-// If Shooter is in a subpackage, keep this import. If it's in the same package, remove the import.
-
-
 @TeleOp(name = "TeleopV12025", group = "Linear Opmode")
 public class TeleopV12025 extends LinearOpMode {
 
     // ---- Existing hardware wrapper ----
     private Bumble robot = new Bumble(telemetry);
 
-    // ---- ADDED: Shooter subsystem ----
+    // ---- Shooter subsystem ----
     private final Shooter shooter = new Shooter();
 
     @Override
     public void runOpMode() {
         // Initialize hardware
         robot.init(hardwareMap);
-
-        // ---- ADDED: init shooter (expects "left_shooter" & "right_shooter" in config) ----
-        shooter.init(hardwareMap);
+        shooter.init(hardwareMap);  // expects: left_shooter, right_shooter, trigger
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
         waitForStart();
+        if (isStopRequested()) return;
 
         double drivePower = -0.3;
 
         robot.resetEncoders();
         robot.setRunWithoutEncoders();
+
+        // --- Edge-detect for B button so one press = one trigger cycle ---
+        boolean prevB = false;
 
         while (opModeIsActive()) {
             // ===== Drive Controls (gamepad1) =====
@@ -52,45 +51,45 @@ public class TeleopV12025 extends LinearOpMode {
             } else if (gamepad1.dpad_right) {
                 robot.strafeRight(drivePower);
             } else if (gamepad1.right_bumper) {
-                if (drivePower < 0) {
-                    robot.rotateLeft(drivePower);
-                } else {
-                    robot.rotateRight(drivePower);
-                }
+                if (drivePower < 0) robot.rotateLeft(drivePower);
+                else                 robot.rotateRight(drivePower);
             } else if (gamepad1.left_bumper) {
-                if (drivePower < 0) {
-                    robot.rotateRight(drivePower);
-                } else {
-                    robot.rotateLeft(drivePower);
-                }
+                if (drivePower < 0) robot.rotateRight(drivePower);
+                else                 robot.rotateLeft(drivePower);
             } else {
                 robot.allStop();
             }
 
-            // ===== Shooter Controls (gamepad2) =====
-            // RT = full power, LT = mid power, A = stop
+            // ===== Shooter flywheels (gamepad2) =====
             if (gamepad2.right_trigger > 0.1) {
-                shooter.shoot(1.0  );
+                shooter.shoot(0.35);
             } else if (gamepad2.left_trigger > 0.1) {
-                shooter.shoot(0.6);
+                shooter.shoot(0.40);
             } else if (gamepad2.a) {
                 shooter.stop();
             }
-            // (Optional) Fail-safe stop if no trigger pressed:
-            // else { shooter.stop(); }
 
-            // Telemetry
+            // ===== Trigger servo (gamepad2.B) → 90° poke then back =====
+            boolean b = gamepad2.b;
+            if (b && !prevB) {
+                shooter.fireTrigger(this); // rotates ~90°, dwells, returns
+            }
+            prevB = b;
+
+            // ===== Telemetry =====
             robot.displayMotorEncoders(telemetry);
             String shooterState =
-                    (gamepad2.right_trigger > 0.1) ? "FULL" :
-                            (gamepad2.left_trigger > 0.1)  ? "MID"  :
-                                    (gamepad2.a)                   ? "STOP" : "IDLE";
+                    (gamepad2.right_trigger > 0.1) ? "PWR 0.35" :
+                            (gamepad2.left_trigger  > 0.1) ? "PWR 0.40" :
+                                    (gamepad2.a)                   ? "STOP"     : "IDLE";
             telemetry.addData("Shooter", shooterState);
+            telemetry.addData("TriggerPos", "%.2f", shooter.getTriggerPosition());
             telemetry.update();
         }
 
         // Safety stops on exit
         shooter.stop();
+        shooter.triggerHome();
         robot.allStop();
     }
 }
