@@ -12,11 +12,17 @@ public class TeleopV12025 extends LinearOpMode {
     // ---- Shooter subsystem ----
     private final Shooter shooter = new Shooter();
 
+    // ---- NEW: distance sensor wrapper (your class) ----
+    private final distancestuff distanceReader = new distancestuff();
+
     @Override
     public void runOpMode() {
         // Initialize hardware
         robot.init(hardwareMap);
         shooter.init(hardwareMap);  // expects: left_shooter, right_shooter, trigger
+
+        // Init distance sensor; RC config name must be "distance_sensor"
+        distanceReader.init(hardwareMap, "distance_sensor");
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -84,6 +90,15 @@ public class TeleopV12025 extends LinearOpMode {
                                     (gamepad2.a)                   ? "STOP"     : "IDLE";
             telemetry.addData("Shooter", shooterState);
             telemetry.addData("TriggerPos", "%.2f", shooter.getTriggerPosition());
+
+            // NEW: Distance in inches from your distancestuff class
+            double inches = distanceReader.getDistanceInches();
+            if (Double.isNaN(inches)) {
+                telemetry.addData("Distance (in)", "—");
+            } else {
+                telemetry.addData("Distance (in)", "%.1f", inches);
+            }
+
             telemetry.update();
         }
 
