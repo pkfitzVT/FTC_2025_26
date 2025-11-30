@@ -6,22 +6,27 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @TeleOp(name = "TeleopV12025", group = "Linear Opmode")
 public class TeleopV12025 extends LinearOpMode {
 
-    // ---- Existing hardware wrapper ----
     private Bumble robot = new Bumble(telemetry);
-
-    // ---- Shooter subsystem ----
     private final Shooter shooter = new Shooter();
-
-    // ---- NEW: distance sensor wrapper (your class) ----
     private final distancestuff distanceReader = new distancestuff();
+
+    // NEW: separate trigger class
+    private final Trigger trigger = new Trigger();
 
     @Override
     public void runOpMode() {
-        // Initialize hardware
+        // Init robot + drive
         robot.init(hardwareMap);
-        shooter.init(hardwareMap);  // expects: left_shooter, right_shooter, trigger
+        robot.resetEncoders();
+        robot.setRunWithoutEncoders();
 
-        // Init distance sensor; RC config name must be "distance_sensor"
+        // Init shooter wheels
+        shooter.init(hardwareMap);
+
+        // Init trigger servo
+        trigger.init(hardwareMap);
+
+        // Init distance sensor
         distanceReader.init(hardwareMap, "distance_sensor");
 
         telemetry.addData("Status", "Initialized");
@@ -31,12 +36,6 @@ public class TeleopV12025 extends LinearOpMode {
         if (isStopRequested()) return;
 
         double drivePower = -0.3;
-
-        robot.resetEncoders();
-        robot.setRunWithoutEncoders();
-
-        // --- Edge-detect for B button so one press = one trigger cycle ---
-        boolean prevB = false;
 
         while (opModeIsActive()) {
             // ===== Drive Controls (gamepad1) =====
@@ -68,30 +67,32 @@ public class TeleopV12025 extends LinearOpMode {
 
             // ===== Shooter flywheels (gamepad2) =====
             if (gamepad2.right_trigger > 0.1) {
-                shooter.shoot(0.35);
+                shooter.shoot(0.30);
             } else if (gamepad2.left_trigger > 0.1) {
-                shooter.shoot(0.40);
+                shooter.shoot(0.32  );
             } else if (gamepad2.a) {
                 shooter.stop();
             }
 
-            // ===== Trigger servo (gamepad2.B) → 90° poke then back =====
-            boolean b = gamepad2.b;
-            if (b && !prevB) {
-                shooter.fireTrigger(this); // rotates ~90°, dwells, returns
+            // ===== Trigger (gamepad2.B) =====
+            // Simple: hold or tap B to fire; each call blocks, moves out and back.
+            if (gamepad2.b) {
+                trigger.fire(this);
             }
-            prevB = b;
 
             // ===== Telemetry =====
-            robot.displayMotorEncoders(telemetry);
-            String shooterState =
-                    (gamepad2.right_trigger > 0.1) ? "PWR 0.35" :
-                            (gamepad2.left_trigger  > 0.1) ? "PWR 0.40" :
-                                    (gamepad2.a)                   ? "STOP"     : "IDLE";
-            telemetry.addData("Shooter", shooterState);
-            telemetry.addData("TriggerPos", "%.2f", shooter.getTriggerPosition());
+            double leftRpm  = shooter.getLeftRpm();
+            double rightRpm = shooter.getRightRpm();
+            double avgRpm   = shooter.getAverageRpm();
 
-            // NEW: Distance in inches from your distancestuff class
+            robot.displayMotorEncoders(telemetry);
+
+            telemetry.addData("Shooter RPM L/R", "%.1f / %.1f", leftRpm, rightRpm);
+            telemetry.addData("Shooter RPM Avg", "%.1f", avgRpm);
+
+            telemetry.addData("TriggerPos", "%.2f", trigger.getPosition());
+            telemetry.addData("gamepad2.b", gamepad2.b);
+
             double inches = distanceReader.getDistanceInches();
             if (Double.isNaN(inches)) {
                 telemetry.addData("Distance (in)", "—");
@@ -102,9 +103,8 @@ public class TeleopV12025 extends LinearOpMode {
             telemetry.update();
         }
 
-        // Safety stops on exit
+        // Safety stop
         shooter.stop();
-        shooter.triggerHome();
         robot.allStop();
     }
 }
