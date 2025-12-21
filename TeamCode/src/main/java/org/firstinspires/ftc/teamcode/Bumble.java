@@ -6,6 +6,12 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+
+
 /*
 This class was created to help simplify the code for the robot.
 All of the hardware mapping is done in this class.
@@ -20,6 +26,8 @@ public class Bumble {
 
     // Telemetry object
     private Telemetry telemetry;
+
+    private IMU imu;
 
     // Constructor to initialize telemetry
     public Bumble(Telemetry telemetry) {
@@ -43,6 +51,20 @@ public class Bumble {
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+
+        // -------- IMU SETUP --------
+        imu = hwMap.get(IMU.class, "imu");  // Name must match your config
+
+        IMU.Parameters imuParams = new IMU.Parameters(
+                new RevHubOrientationOnRobot(
+                        // You said: hub facing LEFT, USB on the outside.
+                        // Adjust these if turns look wrong.
+                        RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+                )
+        );
+        imu.initialize(imuParams);
+
   }
     public void init(HardwareMap ahwMap, Telemetry telemetry) {
         this.telemetry = telemetry;
@@ -67,7 +89,6 @@ public class Bumble {
         leftBackDrive.setPower(-drivePower);
         rightBackDrive.setPower(-drivePower);
     }
-
 
     public void strafeRight (double drivePower) {
         leftFrontDrive.setPower(drivePower);
@@ -110,7 +131,7 @@ public class Bumble {
         telemetry.addData("Left Back Encoder", leftBackDrive.getCurrentPosition());
         telemetry.addData("Right Front Encoder", rightFrontDrive.getCurrentPosition());
         telemetry.addData("Right Back Encoder", rightBackDrive.getCurrentPosition());
-        telemetry.update();
+
     }
 
 
@@ -135,7 +156,8 @@ public class Bumble {
     }
 
     //autonomous methods
-    public void driveForwardAuto(int target) {
+    //The target distance should be in ins and will be converted to encoder clicks (41.2 clicks=1in)
+    public void driveBackwardAuto(int target) {
         resetEncoders();
 
         // Calculate the target encoder clicks
@@ -170,11 +192,11 @@ public class Bumble {
             telemetry.addData("Left Side Encoder", leftSidePosition);
             telemetry.addData("Right Side Encoder", rightSidePosition);
             telemetry.addData("Error", error);
-            telemetry.update();
+
         }
         allStop();
     }
-    public void driveBackwardAuto(int target) {
+    public void driveForwardAuto(int target) {
         // Calculate the target encoder clicks
         resetEncoders();
         int targetClicks = (int) (target * 42.1);
@@ -205,22 +227,22 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
         // Stop the robot
        allStop();
     }
-    public void strafeRightAuto(int target) {
+    public void strafeLeftAuto(int target) {
 
         //reset encoders
         resetEncoders();
         // Calculate the target encoder clicks
-        //int targetClicks = (int) (target * 42.1);
-        int targetClicks = target;
+        int targetClicks = (int) (target*(300/6.5));
 
-        while (Math.abs(averageMotorEncoders()) < targetClicks) {
+
+        while (absAverageMotorEncoders() < targetClicks) {
             // Calculate encoder positions for left and right sides
             int leftSidePosition = (leftFrontDrive.getCurrentPosition() + leftBackDrive.getCurrentPosition()) / 2;
             int rightSidePosition = (rightFrontDrive.getCurrentPosition() + rightBackDrive.getCurrentPosition()) / 2;
@@ -249,7 +271,7 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
@@ -257,7 +279,7 @@ public class Bumble {
         allStop();
     }
 
-    public void strafeLeftAuto(int target) {
+    public void strafeRightAuto(int target) {
         //reset encoders
         resetEncoders();
 
@@ -295,7 +317,7 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
@@ -344,5 +366,76 @@ public class Bumble {
         int averagePosition = (leftFrontPosition + leftBackPosition + rightFrontPosition + rightBackPosition) / 4;
         return averagePosition;
     }
+
+//imu methods
+    public double getHeadingDegrees() {
+        // Yaw = rotation around vertical axis (heading)
+        return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
+    }
+
+    /**
+     * Turn the robot by a specified number of degrees using the IMU.
+     * Positive degrees = clockwise
+     * Negative degrees = counterclockwise
+     */
+    public void turnDegrees(double degrees) {
+        // Reset yaw so we start from 0 for this turn
+        imu.resetYaw();
+
+        // FTC convention: IMU yaw is positive CCW.
+        // We want: positive input = CW.
+        // So the yaw target is the negative of the requested degrees.
+        double targetYaw = -degrees;
+
+        // Tuning parameters
+        double kP        = 0.01;  // Proportional gain - adjust as needed
+        double maxPower  = 0.4;   // Max motor power for turning
+        double minPower  = 0.12;  // Minimum power to overcome friction
+        double tolerance = 2.0;   // Acceptable error in degrees
+
+        while (true) {
+            double heading = getHeadingDegrees();
+            double error   = targetYaw - heading;  // how far we still need to rotate
+
+            // Exit when we're close enough
+            if (Math.abs(error) <= tolerance) {
+                break;
+            }
+
+            // Simple proportional control
+            double turnPower = kP * error;
+
+            // Clamp power
+            if (turnPower >  maxPower) turnPower =  maxPower;
+            if (turnPower < -maxPower) turnPower = -maxPower;
+
+            // Enforce a minimum power so robot doesn't stall
+            if (Math.abs(turnPower) < minPower) {
+                turnPower = Math.copySign(minPower, turnPower);
+            }
+
+            // IMPORTANT: Use your existing rotate helpers.
+            // turnPower > 0  => need a CCW turn   -> use rotateLeft
+            // turnPower < 0  => need a CW turn    -> use rotateRight
+            if (turnPower > 0) {
+                rotateLeft(turnPower);
+            } else {
+                rotateRight(Math.abs(turnPower));
+            }
+
+            // Optional telemetry for debugging during tests
+            if (telemetry != null) {
+                telemetry.addData("Turn Target Yaw", targetYaw);
+                telemetry.addData("Heading", heading);
+                telemetry.addData("Error", error);
+                telemetry.addData("Turn Power", turnPower);
+
+            }
+        }
+
+        // Stop motors at the end
+        allStop();
+    }
+
 
 }
