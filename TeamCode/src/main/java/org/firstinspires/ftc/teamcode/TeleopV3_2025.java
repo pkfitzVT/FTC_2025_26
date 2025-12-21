@@ -3,78 +3,65 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-// NEW: import the vision helper
-import org.firstinspires.ftc.teamcode.vision.DecodeObeliskVision;
-import org.firstinspires.ftc.teamcode.vision.DecodeObeliskVision.Motif;
-//import streaming features
+import org.firstinspires.ftc.teamcode.DecodeObeliskVision;
+import org.firstinspires.ftc.teamcode.DecodeObeliskVision.Motif;
+
+// Dashboard streaming
 import com.acmerobotics.dashboard.FtcDashboard;
-import org.firstinspires.ftc.vision.VisionPortal;
 
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
+@TeleOp(name = "TeleopV3_2025", group = "Linear Opmode")
+public class TeleopV3_2025 extends LinearOpMode {
 
-@TeleOp(name = "TeleopV2_2025", group = "Linear Opmode")
-public class TeleopV2_2025 extends LinearOpMode {
-
-    private Bumble robot = new Bumble(telemetry);
-    private final Shooter shooter = new Shooter();
+    private Bumble robot;
+    private final ShooterV1 shooter = new ShooterV1();
     private final distancestuff distanceReader = new distancestuff();
 
     // Separate trigger class
     private final Trigger trigger = new Trigger();
 
-    // NEW: Decode OBELISK / pattern vision helper
+    // Decode OBELISK / pattern vision helper
     private DecodeObeliskVision decodeVision;
+
+    // FTC Dashboard instance
+    private FtcDashboard dashboard;
+
+
+    private final GoalTagTracker blueGoalTracker = new GoalTagTracker(20);
+
 
     @Override
     public void runOpMode() {
+
+        dashboard = FtcDashboard.getInstance();
+
+        // Wrap telemetry FIRST
+        telemetry = new MultipleTelemetry(super.telemetry, dashboard.getTelemetry());
+
+        // Now build subsystems that store telemetry
+        robot = new Bumble(telemetry);
+
+        decodeVision = new DecodeObeliskVision(telemetry);
+        decodeVision.init(hardwareMap);
+
+        dashboard.startCameraStream(decodeVision.getVisionPortal(), 30);
+
         // Init robot + drive
         robot.init(hardwareMap);
         robot.resetEncoders();
         robot.setRunWithoutEncoders();
 
-        // Init shooter wheels
         shooter.init(hardwareMap);
-
-        // Init trigger servo
         trigger.init(hardwareMap);
-
-        // Init distance sensor
         distanceReader.init(hardwareMap, "distance_sensor");
-
-// NEW: init the vision subsystem (webcam AprilTag → motif)
-        decodeVision = new DecodeObeliskVision(telemetry);
-        decodeVision.init(hardwareMap);
-
 
 
         waitForStart();
         if (isStopRequested()) return;
 
 
-
         double drivePower = -0.3;
-
-        /* autonomous testing
-        telemetry.addLine("Turning +90 (clockwise)...");
-        telemetry.update();
-        robot.turnDegrees(90);
-        sleep(1000);
-
-        // 4. Test a counterclockwise 90 degree turn
-        telemetry.addLine("Turning -90 (counterclockwise)...");
-        telemetry.update();
-        robot.turnDegrees(-90);
-        sleep(1000);
-
-        telemetry.addLine("Turn test complete.");
-        telemetry.update();
-
-
-        // robot.strafeLeftAuto(10);
-
-        //robot.strafeRightAuto(10);
-        */
-
 
         while (opModeIsActive()) {
             // ===== Drive Controls (gamepad1) =====
@@ -106,19 +93,23 @@ public class TeleopV2_2025 extends LinearOpMode {
 
             // ===== Shooter flywheels (gamepad2) =====
             if (gamepad2.right_trigger > 0.1) {
-                shooter.shoot(0.35);
+                //shooter.shoot(0.35);
+                shooter.setTargetRpm(85); // “high”
             } else if (gamepad2.left_trigger > 0.1) {
-                shooter.shoot(0.40);
+                //shooter.shoot(0.40);
+                shooter.setTargetRpm(75); // “high”
             } else if (gamepad2.a) {
                 shooter.stop();
             }
 
+
+            telemetry.addData("g2 RT/LT", "%.2f / %.2f",
+                    gamepad2.right_trigger, gamepad2.left_trigger);
+
             // ===== Trigger (gamepad2.B) =====
-            // Simple: hold or tap B to fire; each call blocks, moves out and back.
             if (gamepad2.b) {
                 trigger.fire(this);
             }
-
 
             // ===== Telemetry =====
             double leftRpm  = shooter.getLeftRpm();
@@ -140,8 +131,13 @@ public class TeleopV2_2025 extends LinearOpMode {
                 telemetry.addData("Distance (in)", "%.1f", inches);
             }
 
+            // ===== Vision: motif + distance/heading =====
             if (decodeVision != null) {
+                // Update vision state
                 decodeVision.update();
+
+                blueGoalTracker.update(decodeVision.getDetections());
+
                 Motif motif = decodeVision.getCurrentMotif();
                 String motifStr = decodeVision.getMotifString();
                 char[] rampPattern = decodeVision.getRampPattern();
@@ -155,16 +151,49 @@ public class TeleopV2_2025 extends LinearOpMode {
                         rampPattern[0], rampPattern[1], rampPattern[2],
                         rampPattern[3], rampPattern[4], rampPattern[5],
                         rampPattern[6], rampPattern[7], rampPattern[8]);
+
+                telemetry.addLine("\n=== BLUE GOAL TAG ===");
+                telemetry.addData("Goal Visible", blueGoalTracker.isGoalVisible());
+                telemetry.addData("Goal ID", blueGoalTracker.getGoalId());
+
+                Double gr = blueGoalTracker.getRangeInches();
+                Double gb = blueGoalTracker.getBearingDeg();
+                if (gr != null && gb != null) {
+                    telemetry.addData("Goal Range (in)", "%.1f", gr);
+                    telemetry.addData("Goal Bearing (deg)", "%.1f", gb);
+                } else {
+                    telemetry.addData("Goal Range/Bearing", "No tag pose");
+                }
+
+                boolean inRange = blueGoalTracker.isInRange(30.0, -10.0, 10.0);
+                telemetry.addData("IN RANGE?", inRange);
+
+
+
+                // NEW: distance and heading from AprilTag
+                Double range = decodeVision.getCurrentRangeInches();
+                Double bearing = decodeVision.getCurrentBearingDeg();
+                if (range != null && bearing != null) {
+                    telemetry.addData("Tag Range (in)", "%.1f", range);
+                    telemetry.addData("Tag Bearing (deg)", "%.1f", bearing);
+                } else {
+                    telemetry.addData("Tag Range/ Bearing", "No tag pose");
+                }
             }
 
-
+            telemetry.update();
         }
 
         // Safety stop
         shooter.stop();
         robot.allStop();
 
-        // Shut down vision to save resources
-        decodeVision.close();
+        // Shut down vision & dashboard to save resources
+        if (decodeVision != null) {
+            decodeVision.close();
+        }
+        if (dashboard != null) {
+            dashboard.stopCameraStream();
+        }
     }
 }

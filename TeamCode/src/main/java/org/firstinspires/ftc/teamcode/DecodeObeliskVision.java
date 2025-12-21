@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.vision;
+package org.firstinspires.ftc.teamcode;
 
 import android.util.Size;
 
@@ -9,6 +9,10 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
 
 import java.util.List;
 
@@ -109,7 +113,7 @@ public class DecodeObeliskVision {
         // builder.setCameraResolution(new Size(640, 480));
 
         // Optional: enable or disable live preview window
-        // builder.enableLiveView(true);
+        builder.enableLiveView(true);
 
         // Attach our AprilTag processor
         builder.addProcessor(aprilTagProcessor);
@@ -250,6 +254,41 @@ public class DecodeObeliskVision {
                 pattern[3], pattern[4], pattern[5],
                 pattern[6], pattern[7], pattern[8]);
     }
+
+    public VisionPortal getVisionPortal() {
+        return visionPortal;
+    }
+
+    public AprilTagDetection getCurrentDetection() {
+        if (aprilTagProcessor == null) return null;
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        for (AprilTagDetection detection : detections) {
+            int id = detection.id;
+            if (id == 21 || id == 22 || id == 23) {
+                return detection;
+            }
+        }
+        return null;
+    }
+
+    public Double getCurrentRangeInches() {
+        AprilTagDetection det = getCurrentDetection();
+        if (det == null || det.ftcPose == null) return null;
+        return det.ftcPose.range;   // in inches if you set output units
+    }
+
+    public Double getCurrentBearingDeg() {
+        AprilTagDetection det = getCurrentDetection();
+        if (det == null || det.ftcPose == null) return null;
+        return det.ftcPose.bearing; // degrees left/right
+    }
+
+    public List<AprilTagDetection> getDetections() {
+        if (aprilTagProcessor == null) return null;
+        return aprilTagProcessor.getDetections();
+    }
+
+
 
     /**
      * Stop streaming and free resources.

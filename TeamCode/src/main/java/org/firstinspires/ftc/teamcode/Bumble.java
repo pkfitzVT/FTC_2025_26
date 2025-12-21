@@ -131,7 +131,7 @@ public class Bumble {
         telemetry.addData("Left Back Encoder", leftBackDrive.getCurrentPosition());
         telemetry.addData("Right Front Encoder", rightFrontDrive.getCurrentPosition());
         telemetry.addData("Right Back Encoder", rightBackDrive.getCurrentPosition());
-        telemetry.update();
+
     }
 
 
@@ -192,7 +192,7 @@ public class Bumble {
             telemetry.addData("Left Side Encoder", leftSidePosition);
             telemetry.addData("Right Side Encoder", rightSidePosition);
             telemetry.addData("Error", error);
-            telemetry.update();
+
         }
         allStop();
     }
@@ -227,7 +227,7 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
@@ -271,7 +271,7 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
@@ -317,7 +317,7 @@ public class Bumble {
                 telemetry.addData("Left Encoder", leftSidePosition);
                 telemetry.addData("Right Encoder", rightSidePosition);
                 telemetry.addData("Error", error);
-                telemetry.update();
+
             }
         }
 
@@ -429,7 +429,7 @@ public class Bumble {
                 telemetry.addData("Heading", heading);
                 telemetry.addData("Error", error);
                 telemetry.addData("Turn Power", turnPower);
-                telemetry.update();
+
             }
         }
 
