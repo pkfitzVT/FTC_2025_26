@@ -95,9 +95,12 @@ public class TeleopV3_2025 extends LinearOpMode {
             if (gamepad2.right_trigger > 0.1) {
                 //shooter.shoot(0.35);
                 shooter.setTargetRpm(85); // “high”
+                //shooter.setTargetRpm(150); // “high”
             } else if (gamepad2.left_trigger > 0.1) {
                 //shooter.shoot(0.40);
                 shooter.setTargetRpm(75); // “high”
+                //shooter.setTargetRpm(200); // “high”
+
             } else if (gamepad2.a) {
                 shooter.stop();
             }

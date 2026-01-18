@@ -27,6 +27,7 @@ public class ShooterV1 {
         left.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         right.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
+
         left.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         right.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
