@@ -11,8 +11,8 @@ import com.acmerobotics.dashboard.FtcDashboard;
 
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
-@TeleOp(name = "CompGroup2026", group = "Linear Opmode")
-public class TeleopV3_2025 extends LinearOpMode {
+@TeleOp(name = "CompSolo2026", group = "Linear Opmode")
+public class TeleopV4Solo_2026 extends LinearOpMode {
 
     private Bumble robot;
     private final ShooterV1 shooter = new ShooterV1();
@@ -91,26 +91,26 @@ public class TeleopV3_2025 extends LinearOpMode {
                 robot.allStop();
             }
 
-            // ===== Shooter flywheels (gamepad2) =====
-            if (gamepad2.right_trigger > 0.1) {
+            // ===== Shooter flywheels (gamepad1) =====
+            if (gamepad1.y) {
                 //shooter.shoot(0.35);
                 shooter.setTargetRpm(85); // “high”
                 //shooter.setTargetRpm(150); // “high”
-            } else if (gamepad2.left_trigger > 0.1) {
+            } else if (gamepad1.x) {
                 //shooter.shoot(0.40);
                 shooter.setTargetRpm(75); // “high”
                 //shooter.setTargetRpm(200); // “high”
 
-            } else if (gamepad2.a) {
+            } else if (gamepad1.a) {
                 shooter.stop();
             }
 
 
             telemetry.addData("g2 RT/LT", "%.2f / %.2f",
-                    gamepad2.right_trigger, gamepad2.left_trigger);
+                    gamepad1.right_trigger, gamepad1.left_trigger);
 
             // ===== Trigger (gamepad2.B) =====
-            if (gamepad2.b) {
+            if (gamepad1.b) {
                 trigger.fire(this);
             }
 

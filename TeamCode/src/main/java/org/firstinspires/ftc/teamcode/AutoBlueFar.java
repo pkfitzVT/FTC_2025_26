@@ -5,30 +5,22 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
- * AutoDriveTurnShoot
- *
- * GOAL:
- * 1) Drive forward 48 inches
- * 2) Turn clockwise 45 degrees
- * 3) Drive forward 55 inches
- * 4) Stop
- * 5) Spin flywheel to 100 RPM
- * 6) Verify flywheel is at speed (and stable)
- * 7) Fire trigger once
- *
  * IMPORTANT NOTES FOR NEW TEAMS:
  * - Bumble's driveForwardAuto() and turnDegrees() are "blocking" loops.
  *   That means once we call them, the OpMode can't do anything else until they finish.
  *   We'll keep our Autonomous simple and reliable using your existing methods.
  * - Shooter spin-up verification IS stop-safe because we check opModeIsActive() in that loop.
  */
-//@Autonomous(name = "AutoBlue02", group = "Decode")
-public class AutoBlue02 extends LinearOpMode {
+@Autonomous(name = "AutoBlueFar", group = "Decode")
+public class AutoBlueFar extends LinearOpMode {
 
     // --- Your robot helper classes ---
     private Bumble bumble;
     private ShooterV1 shooter;
     private Trigger trigger;
+
+    //Auto
+    private final distancestuff distanceReader = new distancestuff();
 
     // --- Shooting parameters ---
     private static final double TARGET_RPM = 80.0;
@@ -56,6 +48,9 @@ public class AutoBlue02 extends LinearOpMode {
         shooter.init(hardwareMap);
         trigger.init(hardwareMap);
 
+        distanceReader.init(hardwareMap, "distance_sensor");
+        bumble.setCollisionSafety(10.0, 1500, 40, 2);
+
         // 3) Pre-start telemetry (shows up while you are on the INIT screen)
         telemetry.addLine("AutoDriveTurnShoot READY");
         telemetry.addLine("Plan: Forward 48 -> CW 45 -> Forward 55 -> Spin 100 RPM -> Fire");
@@ -71,27 +66,27 @@ public class AutoBlue02 extends LinearOpMode {
         // A) DRIVE PATH
         // ----------------------------
 
-        telemetry.addLine("Step 1: Drive forward 10 inches");
+        telemetry.addLine("Step 1: Drive forward 48 inches");
         telemetry.update();
-        bumble.driveForwardAuto(10);  // uses your encoder logic
+        boolean ok=bumble.driveForwardAutoSafe(this, distanceReader, 48, .3); // uses your encoder logic
         bumble.allStop();
 
-        telemetry.addLine("Step 2: Strafe right ");
+        telemetry.addLine("Step 2: Rotate 45 Degrees");
         telemetry.update();
-        bumble.strafeRightAuto(48);  // uses your encoder logic
+        bumble.turnDegrees(-45);  // uses your encoder logic
         bumble.allStop();
 
-        telemetry.addLine("Step 3: Drive forward ");
+        telemetry.addLine("Step 3: Drive forward 60 inches");
         telemetry.update();
-        bumble.driveForwardAuto(70);  // uses your encoder logic
+        ok=bumble.driveForwardAutoSafe(this, distanceReader, 60, .3); // uses your encoder logic
         bumble.allStop();
 
-        telemetry.addLine("Step 4: Turn ");
+        telemetry.addLine("Step 3.5: Rotate -20 Degrees");
         telemetry.update();
-        bumble.turnDegrees(35);  // uses your encoder logic
+        bumble.turnDegrees(-20);  // uses your encoder logic
         bumble.allStop();
 
-        telemetry.addData("Step 5", "Spin flywheel to %.1f RPM", TARGET_RPM);
+        telemetry.addData("Step 4", "Spin flywheel to %.1f RPM", TARGET_RPM);
         telemetry.update();
 
         shooter.setTargetRpm(TARGET_RPM);
@@ -155,31 +150,40 @@ public class AutoBlue02 extends LinearOpMode {
 
         }
 
-            if (!opModeIsActive()) return;
+        if (!opModeIsActive()) return;
 
-            // ----------------------------
-            // C) FIRE ONCE
-            // ----------------------------
-            telemetry.addLine("Step 5: Shooter ready. Firing trigger once...");
-            telemetry.update();
+        // ----------------------------
+        // C) FIRE ONCE
+        // ----------------------------
+        telemetry.addLine("Step 5: Shooter ready. Firing trigger 3x...");
+        telemetry.update();
 
-            // Trigger.fire() uses opMode.sleep() internally, so we pass "this"
-            trigger.fire(this);
+        // Trigger.fire() uses opMode.sleep() internally, so we pass "this"
+        trigger.fire(this);
+        sleep(1000);
+        trigger.fire(this);
+        sleep(1000);
+        trigger.fire(this);
 
-            // ----------------------------
-            // D) SHUTDOWN
-            // ----------------------------
-            telemetry.addLine("Step 6: Stopping flywheel and ending auto.");
-            telemetry.update();
+        // ----------------------------
+        // D) SHUTDOWN
+        // ----------------------------
+        telemetry.addLine("Step 6: Stopping flywheel and ending auto.");
+        telemetry.update();
+        shooter.stop();
+        bumble.allStop();
 
-            shooter.stop();
-            bumble.allStop();
+        telemetry.addLine("Step 7: Strafe Left 15 inches");
+        telemetry.update();
+        bumble.strafeLeftAuto(15);  // uses your encoder logic
+        bumble.allStop();
 
-            telemetry.addLine("AUTO COMPLETE.");
-            telemetry.update();
+        telemetry.addLine("AUTO COMPLETE.");
+        telemetry.update();
+        bumble.allStop();
 
-            // Optional: pause briefly so you can read final telemetry
-            sleep(500);
+        // Optional: pause briefly so you can read final telemetry
+        sleep(500);
 
         /*
         if (!opModeIsActive()) return;
@@ -295,5 +299,5 @@ public class AutoBlue02 extends LinearOpMode {
         sleep(500);
         */
 
-        }
     }
+}
