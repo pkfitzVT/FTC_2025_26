@@ -156,7 +156,7 @@ public class AutoGoal extends LinearOpMode {
 
         telemetry.addLine("Step 5: Strafe 15 inches");
         telemetry.update();
-        bumble.strafeLeftAuto(15);  // uses your encoder logic
+        bumble.strafeLeftAuto(18);  // uses your encoder logic
         bumble.allStop();
 
         telemetry.addLine("AUTO COMPLETE.");

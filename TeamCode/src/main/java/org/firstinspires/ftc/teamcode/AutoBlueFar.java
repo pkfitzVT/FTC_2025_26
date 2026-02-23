@@ -66,24 +66,24 @@ public class AutoBlueFar extends LinearOpMode {
         // A) DRIVE PATH
         // ----------------------------
 
-        telemetry.addLine("Step 1: Drive forward 48 inches");
-        telemetry.update();
-        boolean ok=bumble.driveForwardAutoSafe(this, distanceReader, 48, .3); // uses your encoder logic
+        telemetry.addLine("Step 1: Strafe 24 inches");
+        bumble.strafeRightAuto(24);
         bumble.allStop();
 
-        telemetry.addLine("Step 2: Rotate 45 Degrees");
+        telemetry.addLine("Step 2: Drive forward 48 inches");
         telemetry.update();
-        bumble.turnDegrees(-45);  // uses your encoder logic
+        bumble.driveForwardAuto(48);
         bumble.allStop();
 
-        telemetry.addLine("Step 3: Drive forward 60 inches");
+        telemetry.addLine("Step 3: Rotate 25 degrees");
         telemetry.update();
-        ok=bumble.driveForwardAutoSafe(this, distanceReader, 60, .3); // uses your encoder logic
+        bumble.turnDegrees(25);
+
         bumble.allStop();
 
-        telemetry.addLine("Step 3.5: Rotate -20 Degrees");
+        telemetry.addLine("Step 3.5: Drive forward 26 inches");
         telemetry.update();
-        bumble.turnDegrees(-20);  // uses your encoder logic
+        bumble.driveForwardAuto(26);  // uses your encoder logic
         bumble.allStop();
 
         telemetry.addData("Step 4", "Spin flywheel to %.1f RPM", TARGET_RPM);
