@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   We'll keep our Autonomous simple and reliable using your existing methods.
  * - Shooter spin-up verification IS stop-safe because we check opModeIsActive() in that loop.
  */
-@Autonomous(name = "AutoBlueFar", group = "Decode")
+//@Autonomous(name = "AutoBlueFar", group = "Decode")
 public class AutoBlueFar extends LinearOpMode {
 
     // --- Your robot helper classes ---

@@ -63,14 +63,16 @@ public class ShooterV1 {
         if (right != null) right.setPower(0);
     }
 
-    // Ready check for feeding
+    //checks both motors to be at speed
     public boolean isAtSpeed(double toleranceRpm) {
         if (targetRpm <= 0) return false;
 
-        double avg = getAverageRpm();
-        return Math.abs(avg - targetRpm) <= toleranceRpm;
-    }
+        double leftErr  = Math.abs(getLeftRpm()  - targetRpm);
+        double rightErr = Math.abs(getRightRpm() - targetRpm);
 
+        // Require BOTH motors to be within tolerance
+        return leftErr <= toleranceRpm && rightErr <= toleranceRpm;
+    }
     // --- RPM helpers ---
     private double ticksPerSecToRpm(double tps) {
         return (tps / TICKS_PER_REV) * 60.0;

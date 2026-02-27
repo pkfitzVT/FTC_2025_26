@@ -11,7 +11,7 @@ import com.acmerobotics.dashboard.FtcDashboard;
 
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
-@TeleOp(name = "CompGroup_v2_2026", group = "Linear Opmode")
+@TeleOp(name = "Old CompGroup2026", group = "Linear Opmode")
 public class TeleopV4_2025 extends LinearOpMode {
 
     private Bumble robot;

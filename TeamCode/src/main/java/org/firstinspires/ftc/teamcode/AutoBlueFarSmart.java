@@ -11,8 +11,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   We'll keep our Autonomous simple and reliable using your existing methods.
  * - Shooter spin-up verification IS stop-safe because we check opModeIsActive() in that loop.
  */
-//@Autonomous(name = "AutoRedFar", group = "Decode")
-public class AutoRedFar extends LinearOpMode {
+@Autonomous(name = "AutoBlueFarSmart", group = "Decode")
+public class AutoBlueFarSmart extends LinearOpMode {
 
     // --- Your robot helper classes ---
     private Bumble bumble;
@@ -23,16 +23,16 @@ public class AutoRedFar extends LinearOpMode {
     private final distancestuff distanceReader = new distancestuff();
 
     // --- Shooting parameters ---
-    private static final double TARGET_RPM = 80.0;
+    private static final double TARGET_RPM = 100.0;
 
     // How close we need to be to call it "at speed"
-    private static final double RPM_TOLERANCE = 5.0;
+    private static final double RPM_TOLERANCE = 2.15;
 
     // Require "at speed" continuously for this long before we shoot
     private static final long STABLE_MS = 250;
 
     // Safety timeout so we don't wait forever if something is wrong
-    private static final double SPINUP_TIMEOUT_SEC = 5.0;
+    private static final double SPINUP_TIMEOUT_SEC = 7.0;
 
     @Override
     public void runOpMode() {
@@ -67,27 +67,21 @@ public class AutoRedFar extends LinearOpMode {
         // A) DRIVE PATH
         // ----------------------------
 
-        telemetry.addLine("Step 1: Strafe 24 inches");
-        bumble.strafeRightAuto(24);
-        bumble.allStop();
 
-        telemetry.addLine("Step 2: Drive forward 48 inches");
+        telemetry.addLine("Step 1: Drive forward 72 inches");
+        telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
         telemetry.update();
-        bumble.driveForwardAuto(48);
-        bumble.allStop();
+        sleep(250);
 
-        telemetry.addLine("Step 3: Rotate 25 degrees");
+        //drive forward safe
+        boolean ok = bumble.driveForwardAutoSafe(this, distanceReader, 72, 0.3);
+
+        telemetry.addLine("Step 2: Rotate 45 degrees");
         telemetry.update();
-        bumble.turnDegrees(-25);
-
+        bumble.turnDegrees(47);
         bumble.allStop();
 
-        telemetry.addLine("Step 3.5: Drive forward 26 inches");
-        telemetry.update();
-        bumble.driveForwardAuto(26);  // uses your encoder logic
-        bumble.allStop();
-
-        telemetry.addData("Step 4", "Spin flywheel to %.1f RPM", TARGET_RPM);
+        telemetry.addData("Step 3", "Spin flywheel to %.1f RPM", TARGET_RPM);
         telemetry.update();
 
         shooter.setTargetRpm(TARGET_RPM);
@@ -153,30 +147,73 @@ public class AutoRedFar extends LinearOpMode {
 
         if (!opModeIsActive()) return;
 
-        // ----------------------------
-        // C) FIRE ONCE
-        // ----------------------------
-        telemetry.addLine("Step 5: Shooter ready. Firing trigger 3x...");
+        telemetry.addLine("Step 4: Shooter ready. Firing 3x with re-check...");
         telemetry.update();
 
-        // Trigger.fire() uses opMode.sleep() internally, so we pass "this"
-        trigger.fire(this);
-        sleep(1000);
-        trigger.fire(this);
-        sleep(1000);
-        trigger.fire(this);
+        for (int i = 1; i <= 3 && opModeIsActive(); i++) {
+
+            // Reset per-shot timers/flags so every shot must re-stabilize
+            ElapsedTime overallTimerShot = new ElapsedTime();
+            ElapsedTime stableTimerShot  = new ElapsedTime();
+            boolean stableWindowStartedShot = false;
+
+            while (opModeIsActive() && overallTimerShot.seconds() < SPINUP_TIMEOUT_SEC) {
+
+                boolean atSpeed = shooter.isAtSpeed(RPM_TOLERANCE);
+
+                if (atSpeed) {
+                    if (!stableWindowStartedShot) {
+                        stableWindowStartedShot = true;
+                        stableTimerShot.reset();
+                    }
+                } else {
+                    stableWindowStartedShot = false;
+                }
+
+                telemetry.addData("Shot", "%d/3", i);
+                telemetry.addData("Target RPM", TARGET_RPM);
+                telemetry.addData("Left RPM", "%.1f", shooter.getLeftRpm());
+                telemetry.addData("Right RPM", "%.1f", shooter.getRightRpm());
+                telemetry.addData("Avg RPM", "%.1f", shooter.getAverageRpm());
+                telemetry.addData("Stable time (ms)", stableWindowStartedShot ? (long) stableTimerShot.milliseconds() : 0);
+                telemetry.addData("Spinup timeout (s)", "%.1f / %.1f", overallTimerShot.seconds(), SPINUP_TIMEOUT_SEC);
+                telemetry.update();
+
+                if (stableWindowStartedShot && stableTimerShot.milliseconds() >= STABLE_MS) {
+                    break;
+                }
+
+                sleep(20);
+            }
+
+            // If we didn't stabilize in time, abort remaining shots
+            if (!shooter.isAtSpeed(RPM_TOLERANCE)) {
+                telemetry.addLine("Shooter not stable. Aborting remaining shots.");
+                telemetry.update();
+                break;
+            }
+
+            // Fire this shot
+            trigger.fire(this);
+
+            // Let RPM dip and recover (tune this)
+            sleep(250);
+        }
+
+
+
 
         // ----------------------------
         // D) SHUTDOWN
         // ----------------------------
-        telemetry.addLine("Step 6: Stopping flywheel and ending auto.");
+        telemetry.addLine("Step 5: Stopping flywheel and ending auto.");
         telemetry.update();
         shooter.stop();
         bumble.allStop();
 
-        telemetry.addLine("Step 7: Strafe Left 15 inches");
+        telemetry.addLine("Step 6: Strafe Left 15 inches");
         telemetry.update();
-        bumble.strafeLeftAuto(15);  // uses your encoder logic
+        bumble.strafeRightAuto(15);  // uses your encoder logic
         bumble.allStop();
 
         telemetry.addLine("AUTO COMPLETE.");
@@ -302,3 +339,4 @@ public class AutoRedFar extends LinearOpMode {
 
     }
 }
+

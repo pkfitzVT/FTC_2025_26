@@ -12,7 +12,7 @@ import org.firstinspires.ftc.vision.VisionPortal;
 
 
 
-@TeleOp(name = "TeleopV2_2025", group = "Linear Opmode")
+//@TeleOp(name = "TeleopV2_2025", group = "Linear Opmode")
 public class TeleopV2_2025 extends LinearOpMode {
 
     private Bumble robot = new Bumble(telemetry);

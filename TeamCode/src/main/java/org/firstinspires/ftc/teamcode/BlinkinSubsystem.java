@@ -42,4 +42,5 @@ public class BlinkinSubsystem {
             blinkin.setPattern(pattern);
         }
     }
+
 }
