@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name = "TeleopV12025", group = "Linear Opmode")
+//@TeleOp(name = "TeleopV12025", group = "Linear Opmode")
 public class TeleopV12025 extends LinearOpMode {
 
     private Bumble robot = new Bumble(telemetry);

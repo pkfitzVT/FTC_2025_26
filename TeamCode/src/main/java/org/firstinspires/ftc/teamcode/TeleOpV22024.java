@@ -10,7 +10,7 @@ This class was created to integrate the new hardware class, Bumble,
 with the teleOp methods.
 */
 
-@TeleOp(name = "TeleOp_2024_v3", group = "Linear Opmode")
+//@TeleOp(name = "TeleOp_2024_v3", group = "Linear Opmode")
 public class TeleOpV22024 extends LinearOpMode {
     // Declare OpMode members
 

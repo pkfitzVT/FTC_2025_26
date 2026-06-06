@@ -11,8 +11,8 @@ import com.acmerobotics.dashboard.FtcDashboard;
 
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 
-//@TeleOp(name = "TeleopV3_2025", group = "Linear Opmode")
-public class TeleopV3_2025 extends LinearOpMode {
+@TeleOp(name = "Old CompGroup2026", group = "Linear Opmode")
+public class TeleopV4_2025 extends LinearOpMode {
 
     private Bumble robot;
     private final ShooterV1 shooter = new ShooterV1();
@@ -31,6 +31,7 @@ public class TeleopV3_2025 extends LinearOpMode {
     private final GoalTagTracker blueGoalTracker = new GoalTagTracker(20);
 
 
+
     @Override
     public void runOpMode() {
 
@@ -47,6 +48,9 @@ public class TeleopV3_2025 extends LinearOpMode {
 
         dashboard.startCameraStream(decodeVision.getVisionPortal(), 30);
 
+      BlinkinSubsystem blinkin = new BlinkinSubsystem();
+
+
         // Init robot + drive
         robot.init(hardwareMap);
         robot.resetEncoders();
@@ -56,6 +60,7 @@ public class TeleopV3_2025 extends LinearOpMode {
         trigger.init(hardwareMap);
         distanceReader.init(hardwareMap, "distance_sensor");
 
+        blinkin.init(hardwareMap, "led");
 
         waitForStart();
         if (isStopRequested()) return;
@@ -94,7 +99,9 @@ public class TeleopV3_2025 extends LinearOpMode {
             // ===== Shooter flywheels (gamepad2) =====
             if (gamepad2.right_trigger > 0.1) {
                 //shooter.shoot(0.35);
-                shooter.setTargetRpm(127); // “high”
+                //shooter.setTargetRpm(127); // “high-limit for our ceiling”
+                shooter.setTargetRpm(87); // “high-limit for our ceiling”
+
                 //shooter.setTargetRpm(200); // “high”
             } else if (gamepad2.left_trigger > 0.1) {
                 //shooter.shoot(0.40);
@@ -109,11 +116,23 @@ public class TeleopV3_2025 extends LinearOpMode {
             telemetry.addData("g2 RT/LT", "%.2f / %.2f",
                     gamepad2.right_trigger, gamepad2.left_trigger);
 
-            // ===== Trigger (gamepad2.B) =====
-            if (gamepad2.b) {
-                trigger.fire(this);
+            double target = shooter.getTargetRpm();
+
+            double tgt = shooter.getTargetRpm();
+
+            if (tgt <= 0) {
+                blinkin.setIdle();          // pink
+            } else if (!shooter.isAtSpeed(8)) {
+                blinkin.setSpinning();      // yellow
+            } else {
+                blinkin.setReady();         // green
             }
 
+            //this gives a band of acceptable firing ranges +/- the input
+            // ===== Trigger (gamepad2.B) =====
+            if (gamepad2.b && shooter.isAtSpeed(2)) {
+                trigger.fire(this);
+            }
             // ===== Telemetry =====
             double leftRpm  = shooter.getLeftRpm();
             double rightRpm = shooter.getRightRpm();

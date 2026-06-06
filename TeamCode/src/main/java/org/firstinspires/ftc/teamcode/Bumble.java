@@ -24,6 +24,17 @@ public class Bumble {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
 
+    // ============================
+// Collision safety (tunable)
+// ============================
+    private double stopDistanceIn = 10.0;
+    private long maxWaitMs = 10000;
+    private long waitStepMs = 40;
+    private int blockedConfirmReads = 2;
+
+    public long getMaxWaitMs() { return maxWaitMs; }
+
+
     // Telemetry object
     private Telemetry telemetry;
 
@@ -155,6 +166,50 @@ public class Bumble {
 
     }
 
+    public void setCollisionSafety(double stopDistanceIn, long maxWaitMs, long waitStepMs, int confirmReads) {
+        this.stopDistanceIn = stopDistanceIn;
+        this.maxWaitMs = maxWaitMs;
+        this.waitStepMs = waitStepMs;
+        this.blockedConfirmReads = Math.max(1, confirmReads);
+    }
+
+    private boolean isBlockedStable(distancestuff distanceReader) {
+        int blockedCount = 0;
+
+        for (int i = 0; i < blockedConfirmReads; i++) {
+            double d = distanceReader.getDistanceInches();
+            boolean blockedNow = (!Double.isNaN(d) && d > 0 && d < stopDistanceIn);
+            if (blockedNow) blockedCount++;
+        }
+        return blockedCount >= blockedConfirmReads;
+    }
+
+    private boolean waitUntilClear(com.qualcomm.robotcore.eventloop.opmode.LinearOpMode opMode,
+                                   distancestuff distanceReader,
+                                   String label) {
+        long start = System.currentTimeMillis();
+
+        while (opMode.opModeIsActive()) {
+            boolean blocked = isBlockedStable(distanceReader);
+
+            if (telemetry != null) {
+                double d = distanceReader.getDistanceInches();
+                telemetry.addData("COLLISION", "%s | d(in)=%.1f | blocked=%s",
+                        label,
+                        Double.isNaN(d) ? -1.0 : d,
+                        blocked);
+                telemetry.update();
+            }
+
+            if (!blocked) return true;
+
+            allStop();
+            opMode.sleep(waitStepMs);
+            
+        }
+        return false;
+    }
+
     //autonomous methods
     //The target distance should be in ins and will be converted to encoder clicks (41.2 clicks=1in)
     public void driveBackwardAuto(int target) {
@@ -234,6 +289,58 @@ public class Bumble {
         // Stop the robot
        allStop();
     }
+
+    public boolean driveForwardAutoSafe(com.qualcomm.robotcore.eventloop.opmode.LinearOpMode opMode,
+                                        distancestuff distanceReader,
+                                        int targetInches,
+                                        double basePower) {
+
+        resetEncoders();
+        int targetClicks = (int) (targetInches * 42.1);
+
+        double forwardPower = -Math.abs(basePower);
+
+        while (opMode.opModeIsActive() && Math.abs(averageMotorEncoders()) < targetClicks) {
+
+            if (distanceReader != null && isBlockedStable(distanceReader)) {
+
+                allStop();
+
+                boolean cleared = waitUntilClear(opMode, distanceReader, "driveForward");
+                if (!cleared) {
+                    allStop();
+                    return false;
+                }
+            }
+
+            int leftSidePosition  = (leftFrontDrive.getCurrentPosition() + leftBackDrive.getCurrentPosition()) / 2;
+            int rightSidePosition = (rightFrontDrive.getCurrentPosition() + rightBackDrive.getCurrentPosition()) / 2;
+            int error = leftSidePosition - rightSidePosition;
+
+            double correction = error * 0.001;
+
+            double leftPower  = forwardPower - correction;
+            double rightPower = forwardPower + correction;
+
+            leftFrontDrive.setPower(leftPower);
+            leftBackDrive.setPower(leftPower);
+            rightFrontDrive.setPower(rightPower);
+            rightBackDrive.setPower(rightPower);
+
+            if (telemetry != null) {
+                telemetry.addData("SAFE FWD TargetClicks", targetClicks);
+                telemetry.addData("SAFE FWD AvgEnc", Math.abs(averageMotorEncoders()));
+                telemetry.addData("SAFE FWD Error", error);
+                telemetry.update();
+            }
+
+            opMode.sleep(10);
+        }
+
+        allStop();
+        return opMode.opModeIsActive();
+    }
+
     public void strafeLeftAuto(int target) {
 
         //reset encoders
