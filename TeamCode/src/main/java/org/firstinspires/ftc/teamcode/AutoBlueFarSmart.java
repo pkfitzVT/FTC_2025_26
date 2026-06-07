@@ -23,16 +23,16 @@ public class AutoBlueFarSmart extends LinearOpMode {
     private final distancestuff distanceReader = new distancestuff();
 
     // --- Shooting parameters ---
-    private static final double TARGET_RPM = 100.0;
+    private static final double TARGET_RPM = 94.0;
 
     // How close we need to be to call it "at speed"
-    private static final double RPM_TOLERANCE = 2.15;
+    private static final double RPM_TOLERANCE = 2.75;
 
     // Require "at speed" continuously for this long before we shoot
-    private static final long STABLE_MS = 250;
+    private static final long STABLE_MS = 100;
 
     // Safety timeout so we don't wait forever if something is wrong
-    private static final double SPINUP_TIMEOUT_SEC = 7.0;
+    private static final double SPINUP_TIMEOUT_SEC = 9.0;
 
     @Override
     public void runOpMode() {
@@ -76,10 +76,27 @@ public class AutoBlueFarSmart extends LinearOpMode {
         //drive forward safe
         boolean ok = bumble.driveForwardAutoSafe(this, distanceReader, 72, 0.3);
 
-        telemetry.addLine("Step 2: Rotate 45 degrees");
+
+        telemetry.addLine("Step 2: Rotate 67 degrees");
         telemetry.update();
-        bumble.turnDegrees(47);
+        bumble.turnDegrees(64);
         bumble.allStop();
+
+        telemetry.addLine("Step 2.5: Drive forward 10 inches");
+        telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
+        telemetry.update();
+        sleep(250);
+
+        //drive forward safe
+        ok = bumble.driveForwardAutoSafe(this, distanceReader, 20, 0.3);
+
+        telemetry.addLine("Step 2.75: Drive Strafe 4 inches");
+        telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
+        telemetry.update();
+        sleep(250);
+
+        //drive forward safe
+        bumble.strafeLeftAuto(4);
 
         telemetry.addData("Step 3", "Spin flywheel to %.1f RPM", TARGET_RPM);
         telemetry.update();
@@ -197,7 +214,7 @@ public class AutoBlueFarSmart extends LinearOpMode {
             trigger.fire(this);
 
             // Let RPM dip and recover (tune this)
-            sleep(250);
+            sleep(3000);
         }
 
 
@@ -222,120 +239,6 @@ public class AutoBlueFarSmart extends LinearOpMode {
 
         // Optional: pause briefly so you can read final telemetry
         sleep(500);
-
-        /*
-        if (!opModeIsActive()) return;
-
-        telemetry.addLine("Step 2: Turn clockwise 45 degrees");
-        telemetry.update();
-        bumble.turnDegrees(45);       // your Bumble: positive degrees = clockwise
-        bumble.allStop();
-
-        if (!opModeIsActive()) return;
-
-        telemetry.addLine("Step 3: Drive forward 55 inches");
-        telemetry.update();
-        bumble.driveForwardAuto(10);
-        bumble.allStop();
-
-        if (!opModeIsActive()) return;
-
-        telemetry.addLine("Drive path complete. Robot stopped.");
-        telemetry.update();
-
-        // ----------------------------
-        // B) SPIN UP FLYWHEEL + VERIFY
-        // ----------------------------
-
-        telemetry.addData("Step 4", "Spin flywheel to %.1f RPM", TARGET_RPM);
-        telemetry.update();
-
-        shooter.setTargetRpm(TARGET_RPM);
-
-        // We will require the shooter to be "at speed" for STABLE_MS continuously.
-        ElapsedTime overallTimer = new ElapsedTime();
-        ElapsedTime stableTimer  = new ElapsedTime();
-
-        boolean stableWindowStarted = false;
-
-        while (opModeIsActive() && overallTimer.seconds() < SPINUP_TIMEOUT_SEC) {
-
-            // Read RPM values (these come from ShooterV1's getVelocity() conversions)
-            double leftRpm  = shooter.getLeftRpm();
-            double rightRpm = shooter.getRightRpm();
-            double avgRpm   = shooter.getAverageRpm();
-
-            boolean atSpeed = shooter.isAtSpeed(RPM_TOLERANCE);
-
-            // If we just became atSpeed, start the stable timer
-            if (atSpeed) {
-                if (!stableWindowStarted) {
-                    stableWindowStarted = true;
-                    stableTimer.reset();
-                }
-            } else {
-                // Not at speed -> reset stability window
-                stableWindowStarted = false;
-            }
-
-            // Telemetry so you can see what the flywheel is doing
-            telemetry.addData("Target RPM", TARGET_RPM);
-            telemetry.addData("Left RPM", "%.1f", leftRpm);
-            telemetry.addData("Right RPM", "%.1f", rightRpm);
-            telemetry.addData("Avg RPM", "%.1f", avgRpm);
-            //telemetry.addData("At speed? (±%.1f)", RPM_TOLERANCE, atSpeed);
-            telemetry.addData("Stable time (ms)", stableWindowStarted ? (long)(stableTimer.milliseconds()) : 0);
-            telemetry.addData("Spinup timeout (s)", "%.1f / %.1f", overallTimer.seconds(), SPINUP_TIMEOUT_SEC);
-            telemetry.update();
-
-            // If we have been at speed long enough, we are ready to shoot
-            if (stableWindowStarted && stableTimer.milliseconds() >= STABLE_MS) {
-                break;
-            }
-
-            // Small pause keeps telemetry readable and reduces CPU load
-            sleep(20);
-        }
-
-        // If we timed out, we can choose to NOT shoot.
-        // New-team-friendly behavior: if not stable, abort the shot.
-        boolean readyToShoot = shooter.isAtSpeed(RPM_TOLERANCE);
-        if (!readyToShoot) {
-            telemetry.addLine("Shooter NOT stable at speed. Aborting shot for safety.");
-            telemetry.addLine("Check: motor direction, TICKS_PER_REV, battery, friction, wiring.");
-            telemetry.update();
-
-            shooter.stop();
-            bumble.allStop();
-            return;
-        }
-
-        if (!opModeIsActive()) return;
-
-        // ----------------------------
-        // C) FIRE ONCE
-        // ----------------------------
-        telemetry.addLine("Step 5: Shooter ready. Firing trigger once...");
-        telemetry.update();
-
-        // Trigger.fire() uses opMode.sleep() internally, so we pass "this"
-        trigger.fire(this);
-
-        // ----------------------------
-        // D) SHUTDOWN
-        // ----------------------------
-        telemetry.addLine("Step 6: Stopping flywheel and ending auto.");
-        telemetry.update();
-
-        shooter.stop();
-        bumble.allStop();
-
-        telemetry.addLine("AUTO COMPLETE.");
-        telemetry.update();
-
-        // Optional: pause briefly so you can read final telemetry
-        sleep(500);
-        */
 
     }
 }

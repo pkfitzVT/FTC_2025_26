@@ -23,16 +23,16 @@ public class AutoRedFarSmart extends LinearOpMode {
     private final distancestuff distanceReader = new distancestuff();
 
     // --- Shooting parameters ---
-    private static final double TARGET_RPM = 100.0;
+    private static final double TARGET_RPM = 94.0;
 
     // How close we need to be to call it "at speed"
-    private static final double RPM_TOLERANCE = 2.15;
+    private static final double RPM_TOLERANCE = 2.75;
 
     // Require "at speed" continuously for this long before we shoot
-    private static final long STABLE_MS = 250;
+    private static final long STABLE_MS = 100;
 
     // Safety timeout so we don't wait forever if something is wrong
-    private static final double SPINUP_TIMEOUT_SEC = 7.0;
+    private static final double SPINUP_TIMEOUT_SEC = 9.0;
 
     @Override
     public void runOpMode() {
@@ -77,19 +77,26 @@ public class AutoRedFarSmart extends LinearOpMode {
         boolean ok = bumble.driveForwardAutoSafe(this, distanceReader, 72, 0.3);
 
 
-        telemetry.addLine("Step 2: Rotate 45 degrees");
+        telemetry.addLine("Step 2: Rotate 67 degrees");
         telemetry.update();
-        bumble.turnDegrees(-47);
+        bumble.turnDegrees(-64);
         bumble.allStop();
 
-        telemetry.addLine("Step 2.5: Drive forward 12 inches");
+        telemetry.addLine("Step 2.5: Drive forward 10 inches");
         telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
         telemetry.update();
         sleep(250);
 
         //drive forward safe
-        ok = bumble.driveForwardAutoSafe(this, distanceReader, 12, 0.3);
+        ok = bumble.driveForwardAutoSafe(this, distanceReader, 20, 0.3);
 
+        telemetry.addLine("Step 2.75: Drive Strafe 24 inches");
+        telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
+        telemetry.update();
+        sleep(250);
+
+        //drive forward safe
+        bumble.strafeRightAuto(4);
 
         telemetry.addData("Step 3", "Spin flywheel to %.1f RPM", TARGET_RPM);
         telemetry.update();
@@ -207,7 +214,7 @@ public class AutoRedFarSmart extends LinearOpMode {
             trigger.fire(this);
 
             // Let RPM dip and recover (tune this)
-            sleep(250);
+            sleep(3000);
         }
 
 
