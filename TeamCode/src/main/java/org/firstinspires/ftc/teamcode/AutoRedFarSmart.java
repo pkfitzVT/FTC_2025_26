@@ -76,10 +76,20 @@ public class AutoRedFarSmart extends LinearOpMode {
         //drive forward safe
         boolean ok = bumble.driveForwardAutoSafe(this, distanceReader, 72, 0.3);
 
+
         telemetry.addLine("Step 2: Rotate 45 degrees");
         telemetry.update();
         bumble.turnDegrees(-47);
         bumble.allStop();
+
+        telemetry.addLine("Step 2.5: Drive forward 12 inches");
+        telemetry.addData("Safety maxWaitMs", bumble.getMaxWaitMs());
+        telemetry.update();
+        sleep(250);
+
+        //drive forward safe
+        ok = bumble.driveForwardAutoSafe(this, distanceReader, 12, 0.3);
+
 
         telemetry.addData("Step 3", "Spin flywheel to %.1f RPM", TARGET_RPM);
         telemetry.update();
